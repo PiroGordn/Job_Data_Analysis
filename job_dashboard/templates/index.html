@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Job Market Analysis</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    <style>
+        body {
+                font-family: 'Quicksand', sans-serif;
+                background: #f5f7fb;
+                margin: 0;
+                padding: 0;
+            }
+        h1, h2, h3 {
+                font-weight: 600;
+                letter-spacing: 0.5px;
+            }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        .hero {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+        .hero h1 {
+            margin: 0 0 8px;
+        }
+        .hero p {
+            margin: 0;
+            color: #4b5563;
+        }
+        .cards, .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+        .card, .stat {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 18px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+        .card a {
+            display: inline-block;
+            margin-top: 10px;
+            text-decoration: none;
+            color: #AFA2FF;
+            font-weight: bold;
+        }
+        .chart-box, .steps, .footer-note {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 18px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            margin-top: 20px;
+        }
+        .stat h3 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .stat p {
+            margin: 6px 0 0;
+            color: #4b5563;
+        }
+        .steps ol {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .steps li {
+            margin: 6px 0;
+        }
+        .footer-note {
+            color: #4b5563;
+        }
+        #previewChart {
+            transition: opacity 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <section class="hero">
+            <h1>Job Market Analysis</h1>
+            <p>Explore job trends, in-demand skills, and expected salaries.</p>
+        </section>
+
+        <section class="cards">
+            <div class="card">
+                <h2>Analytics Dashboard</h2>
+                <p>View trends, top skills, and role-wise insights.</p>
+                <a href="/dashboard" style="color: #AFA2FF;">Open Dashboard</a>
+            </div>
+            <div class="card">
+                <h2>Salary Prediction</h2>
+                <p>Estimate salary by role and location.</p>
+                <a href="/salary-prediction" style="color: #AFA2FF;">Open Predictor</a>
+            </div>
+        </section>
+
+        <section class="stats">
+            <div class="stat">
+                <h3>{{ stats.total_jobs }}</h3>
+                <p>Total jobs analyzed</p>
+            </div>
+            <div class="stat">
+                <h3>{{ stats.unique_roles }}</h3>
+                <p>Unique job roles</p>
+            </div>
+            <div class="stat">
+                <h3>{{ stats.unique_locations }}</h3>
+                <p>Unique locations</p>
+            </div>
+            <div class="stat">
+                <h3>{{ stats.top_skill }}</h3>
+                <p>Most in-demand skill</p>
+            </div>
+        </section>
+
+        <div class="card" style="margin-top: 24px;">
+        <h2 id="chartTitle">Analytics Preview</h2>
+        <div id="previewChart" style="width:100%; height:500px;"></div>
+        </div>
+
+<script>
+
+const charts = [
+
+    {
+        title: "Top Skills",
+        endpoint: "/api/skills",
+        type: "bar"
+    },
+
+    {
+        title: "Salary by Role",
+        endpoint: "/api/salary",
+        type: "bar"
+    },
+
+    {
+        title: "Work Type Distribution",
+        endpoint: "/api/work-type-distribution",
+        type: "pie"
+    }
+
+];
+
+let currentChart = 0;
+
+async function loadChart() {
+
+    const chartDiv = document.getElementById('previewChart');
+    chartDiv.style.opacity = 0;
+    const chart = charts[currentChart];
+
+    document.getElementById("chartTitle").innerText =
+        chart.title;
+
+    try {
+
+        const response = await fetch(chart.endpoint);
+
+        const data = await response.json();
+
+        let plotData = [];
+
+
+        if (chart.type === "bar") {
+
+            plotData = [{
+                x: Object.keys(data),
+                y: Object.values(data),
+                type: 'bar'
+            }];
+        }
+        else if (chart.type === "pie") {
+
+    console.log("PIE DATA:", data);
+
+    plotData = [{
+        labels: data.labels,
+        values: data.values,
+        type: 'pie',
+        textinfo: 'label+percent',
+        hole: 0.4
+    }];
+}
+        console.log(plotData);
+        Plotly.react(
+            'previewChart',
+            plotData,
+            {
+                margin: { t: 40 },
+
+                paper_bgcolor: 'white',
+                plot_bgcolor: 'white',
+
+                font: {
+                    family: 'Roboto Condensed'
+                }
+            },
+
+            {
+                responsive: true
+            }
+        );
+        setTimeout(() => {
+            chartDiv.style.opacity = 1;
+        }, 200);
+
+    }
+
+    catch(err) {
+
+        console.error(err);
+    }
+
+    currentChart =
+        (currentChart + 1) % charts.length;
+}
+
+loadChart();
+
+setInterval(loadChart, 5000);
+
+</script>
+</body>
+</html>

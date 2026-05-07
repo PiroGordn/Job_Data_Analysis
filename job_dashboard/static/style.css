@@ -1,0 +1,85 @@
+body {
+    font-family: 'Quicksand', sans-serif;
+    background: #f5f7fb;
+    margin: 0;
+    padding: 0;
+}
+h1, h2, h3 {
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+p {
+    font-weight: 400;
+}
+
+select, input, button {
+    font-family: 'Roboto Condensed', sans-serif;
+}
+h2 {
+    margin-bottom: 10px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: auto;
+    padding: 20px;
+}
+
+.card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+}
+
+select, input {
+    padding: 10px;
+    margin: 10px 10px 10px 0;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    font-size: 14px;
+}
+
+button {
+    background: #E3D7FF;
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+button:hover {
+    background: #E3D7FF;
+}
+
+#result {
+    margin-top: 10px;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+#salaryTimeline {
+    margin-top: 20px;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+}
+
+.map-full {
+    grid-column: 1 / -1;
+}
+
+.card {
+    transition: all 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+}

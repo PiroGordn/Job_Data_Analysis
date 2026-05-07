@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Job Market Analytics Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+                font-family: 'Quicksand', sans-serif;
+                background: #f5f7fb;
+                margin: 0;
+                padding: 0;
+            }
+        h1, h2, h3 {
+                font-weight: 600;
+                letter-spacing: 0.5px;
+            }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        nav {
+            margin-bottom: 18px;
+        }
+        nav a {
+            text-decoration: none;
+            color: #AFA2FF;
+            font-weight: 600;
+        }
+        .filters {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            margin-bottom: 18px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            align-items: end;
+        }
+        .filters label {
+            display: block;
+            font-size: 13px;
+            margin-bottom: 4px;
+            color: #4b5563;
+        }
+        .filters select, .filters input, .filters button {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+        .filters button {
+            background:#AFA2FF;
+            color: #ffffff;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 18px;
+        }
+        .card {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+        .card.double-width {
+            grid-column: span 2;
+        }
+        canvas, .plotly-box {
+            width: 100%;
+            min-height: 280px;
+        }
+        .skills-chart-wrap {
+            height: 420px;
+        }
+        .skills-chart-wrap canvas {
+            height: 100% !important;
+            min-height: 0 !important;
+        }
+        .trend-chart-wrap {
+            height: 360px;
+        }
+        .trend-chart-wrap canvas {
+            height: 100% !important;
+            min-height: 0 !important;
+        }
+
+        .map-full {
+        grid-column: 1 / -1;
+        }
+
+        .map-container {
+            height: 450px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Job Market Analytics Dashboard</h1>
+    <nav>
+        <a href="/">Home</a> |
+        <a href="/salary-prediction">Salary Prediction</a>
+    </nav>
+
+    <section class="filters">
+        <div>
+            <label for="roleFilter">Role</label>
+            <select id="roleFilter">
+                <option value="">All Roles</option>
+                {% for role in roles %}
+                    <option value="{{ role }}">{{ role }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="locationFilter">Location</label>
+            <select id="locationFilter">
+                <option value="">All Locations</option>
+                {% for location in locations %}
+                    <option value="{{ location }}">{{ location }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="startDateFilter">Start Date</label>
+            <input type="date" id="startDateFilter" min="{{ min_date }}" max="{{ max_date }}">
+        </div>
+        <div>
+            <label for="endDateFilter">End Date</label>
+            <input type="date" id="endDateFilter" min="{{ min_date }}" max="{{ max_date }}">
+        </div>
+        <div>
+            <label>&nbsp;</label>
+            <button id="applyFiltersBtn">Apply Filters</button>
+        </div>
+    </section>
+
+    <div class="grid">
+        <section class="card">
+            <h2>Top Skills</h2>
+            <div class="skills-chart-wrap">
+                <canvas id="skillsChart"></canvas>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Job Trends</h2>
+            <div class="trend-chart-wrap">
+                <canvas id="trendChart"></canvas>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Qualification vs Job Role</h2>
+            <div id="qualificationHeatmap"></div>
+        </section>
+
+        <section class="card">
+            <h2>Work Type Distribution</h2>
+            <canvas id="workTypeChart"></canvas>
+            <p id="workTypeStatus" style="display:none; color:#b91c1c; margin-top:8px;"></p>
+        </section>
+
+        <section class="card double-width">
+            <h2>Salary Distribution (Box Plot)</h2>
+            <div id="salaryBoxPlot" class="plotly-box"></div>
+        </section>
+
+        <section class="card map-full">
+        <h2>Jobs by Country</h2>
+        <div id="jobMap" class="map-container"></div>
+        </section>
+    </div>
+</div>
+
+<script>
+let skillsChart;
+let trendChart;
+let jobDistributionChart;
+let workTypeChart;
+
+function buildQueryParams() {
+    const params = new URLSearchParams();
+    const role = document.getElementById('roleFilter').value;
+    const location = document.getElementById('locationFilter').value;
+    const startDate = document.getElementById('startDateFilter').value;
+    const endDate = document.getElementById('endDateFilter').value;
+
+    if (role) params.append('role', role);
+    if (location) params.append('location', location);
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+
+    return params.toString() ? `?${params.toString()}` : '';
+}
+
+function renderOrUpdateChart(currentChart, elementId, config) {
+    if (currentChart) {
+        currentChart.destroy();
+    }
+    return new Chart(document.getElementById(elementId), config);
+}
+
+function loadDashboardData() {
+    const query = buildQueryParams();
+
+    fetch(`/api/skills${query}`)
+        .then((res) => res.json())
+        .then((data) => {
+            const fullSkillLabels = Object.keys(data);
+            const truncatedSkillLabels = fullSkillLabels.map((label) =>
+                label.length > 16 ? `${label.slice(0, 16)}...` : label
+            );
+
+            skillsChart = renderOrUpdateChart(skillsChart, 'skillsChart', {
+                type: 'bar',
+                data: {
+                    labels: truncatedSkillLabels,
+                    datasets: [{
+                        label: 'Mentions',
+                        data: Object.values(data),
+                        backgroundColor: '#3b82f6'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: (items) => fullSkillLabels[items[0].dataIndex]
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true
+                        },
+                        y: {
+                            ticks: {
+                                autoSkip: false
+                            }
+                        }
+                    }
+                }
+            });
+        });
+
+    fetch(`/api/trends${query}`)
+        .then((res) => res.json())
+        .then((data) => {
+            const trendLabelsRaw = Object.keys(data);
+            const trendValues = Object.values(data);
+            const maxTrendValue = trendValues.length ? Math.max(...trendValues) : 0;
+            const yAxisUpperBound = Math.ceil(maxTrendValue * 1.15);
+            const trendLabels = trendLabelsRaw.map((label) => {
+                const [year, month] = label.split('-');
+                return `${month}/${year.slice(2)}`;
+            });
+
+            const movingAverage = trendValues.map((_, idx, arr) => {
+                const start = Math.max(0, idx - 2);
+                const window = arr.slice(start, idx + 1);
+                const sum = window.reduce((acc, val) => acc + val, 0);
+                return Math.round((sum / window.length) * 10) / 10;
+            });
+
+            trendChart = renderOrUpdateChart(trendChart, 'trendChart', {
+                type: 'line',
+                data: {
+                    labels: trendLabels,
+                    datasets: [{
+                        label: 'Job Postings',
+                        data: trendValues,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.18)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 3,
+                        pointHoverRadius: 5
+                    }, {
+                        label: '3-Month Moving Avg',
+                        data: movingAverage,
+                        borderColor: '#ef4444',
+                        borderDash: [6, 4],
+                        fill: false,
+                        tension: 0.25,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                maxRotation: 0,
+                                autoSkip: true,
+                                maxTicksLimit: 10
+                            }
+                        },
+                        y: {
+                            beginAtZero: false,
+                            suggestedMax: yAxisUpperBound,
+                            ticks: {
+                                precision: 0
+                            }
+                        }
+                    }
+                }
+            });
+        });
+
+    fetch(`/api/job-distribution${query}`)
+        .then((res) => res.json())
+        .then((data) => {
+            jobDistributionChart = renderOrUpdateChart(jobDistributionChart, 'jobDistributionChart', {
+                type: 'pie',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        data: data.values
+                    }]
+                },
+                options: { responsive: true }
+            });
+        });
+
+        fetch(`/api/qualification-heatmap${query}`)
+        .then(res => res.json())
+        .then(data => {
+
+    if (!data.x || data.x.length === 0) return;
+
+    Plotly.newPlot('qualificationHeatmap', [{
+        z: data.z,
+        x: data.x,
+        y: data.y,
+        type: 'heatmap',
+        colorscale: 'YlGnBu'
+    }], {
+        margin: { t: 30, l:110, b:60
+        }
+    });
+
+    });
+
+    fetch(`/api/work-type-distribution${query}`)
+        .then((res) => res.json())
+        .then((data) => {
+            const status = document.getElementById('workTypeStatus');
+            if (!data.labels || data.labels.length === 0) {
+                status.style.display = 'block';
+                status.textContent = 'No work type data available for current filters.';
+                if (workTypeChart) {
+                    workTypeChart.destroy();
+                    workTypeChart = null;
+                }
+                return;
+            }
+            status.style.display = 'none';
+            workTypeChart = renderOrUpdateChart(workTypeChart, 'workTypeChart', {
+                type: 'bar',
+                data: {
+                    labels: data.labels || [],
+                    datasets: [{
+                        label: 'Job Count',
+                        data: data.values || [],
+                        backgroundColor: '#8b5cf6'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        }
+                    }
+                }
+            });
+        })
+        .catch(() => {
+            const status = document.getElementById('workTypeStatus');
+            status.style.display = 'block';
+            status.textContent = 'Could not load work type chart. Restart Flask and refresh.';
+        });
+
+    fetch(`/api/salary-distribution${query}`)
+        .then((res) => res.json())
+        .then((data) => {
+            const traces = data.map((item) => ({
+                y: item.salaries,
+                name: item.role,
+                type: 'box'
+            }));
+
+            Plotly.newPlot('salaryBoxPlot', traces, {
+                margin: { t: 20, r: 10, b: 60, l: 50 },
+                yaxis: { title: 'Salary' }
+            }, { responsive: true });
+        });
+
+    fetch(`/api/jobs-by-country${query}`)
+    .then(res => res.json())
+    .then(data => {
+
+    console.log("Map data:", data);
+
+    if (!data.countries || data.countries.length === 0) return;
+
+    const trace = {
+        type: "choropleth",
+        locationmode: "country names",
+        locations: data.countries,
+        z: data.values,
+        colorscale: "YlGnBu",
+        colorbar: {
+            title: "Jobs"
+        },
+        hovertemplate: "%{location}<br>Jobs: %{z}<extra></extra>"
+    };
+
+    const layout = {
+        margin: { t: 0, b: 0, l: 0, r: 0 },
+        geo: {
+            projection: {
+                type: "natural earth",
+                scale: 1.25
+            },
+            center: { lat: 20, lon: 0 },
+            showframe: false,
+            showcoastlines: true
+        }
+    };
+
+    document.getElementById('jobMap').innerHTML = "";
+    Plotly.newPlot('jobMap', [trace], layout, { responsive: true });
+
+    })
+    .catch(err => console.error("Map error:", err));
+}
+
+
+
+document.getElementById('applyFiltersBtn').addEventListener('click', loadDashboardData);
+loadDashboardData();
+</script>
+
+</body>
+</html>

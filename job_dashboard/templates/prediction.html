@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Salary Prediction</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap" rel="stylesheet">
+
+</head>
+<body>
+
+<div class="container">
+
+    <div class="card">
+        <h2>Salary Predictor</h2>
+
+        <select id="role">
+            {% for r in roles %}
+                <option value="{{ r }}">{{ r }}</option>
+            {% endfor %}
+        </select>
+
+        <select id="location">
+            {% for l in locations %}
+                <option value="{{ l }}">{{ l }}</option>
+            {% endfor %}
+        </select>
+
+        <select id="work_type">
+            <option value="Full-Time">Full-Time</option>
+            <option value="Part-Time">Part-Time</option>
+            <option value="Contract">Contract</option>
+            <option value="Intern">Intern</option>
+        </select>
+
+        <input type="number" id="experience" min="0" placeholder="Years of Experience">
+
+        <input type="text" id="skills" placeholder="Skills (Python, SQL, ML)">
+
+        <br>
+
+        <button onclick="predict()">Predict</button>
+
+        <h3 id="result"></h3>
+    </div>
+
+    <div class="card">
+        <h2>Salary Growth</h2>
+        <div id="salaryTimeline"></div>
+    </div>
+
+</div>
+
+<script>
+function predict() {
+
+    const role = document.getElementById('role')?.value || "";
+    const location = document.getElementById('location')?.value || "";
+    const work_type = document.getElementById('work_type')?.value || "";
+    const experience = document.getElementById('experience')?.value || 0;
+    const skills = document.getElementById('skills')?.value || "";
+
+    document.getElementById('result').innerText = "Predicting...";
+
+    // Salary prediction
+    fetch('/predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role, location, work_type, experience, skills })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.error) {
+            document.getElementById('result').innerText = data.error;
+        } else {
+            document.getElementById('result').innerText =
+                `Salary: $${data.min} - $${data.max}`;
+        }
+    });
+
+    // Timeline chart
+    fetch('/predict-timeline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role, location, work_type, skills })
+    })
+    .then(res => res.json())
+    .then(data => {
+
+        Plotly.newPlot('salaryTimeline', [
+
+    {
+        x: data.experience,
+        y: data.minimum,
+        type: 'scatter',
+        mode: 'lines',
+        name: 'Minimum Salary',
+        line: {
+            dash: 'dot'
+        }
+    },
+
+    {
+        x: data.experience,
+        y: data.expected,
+        type: 'scatter',
+        mode: 'lines+markers',
+        name: 'Expected Salary',
+        line: {
+            shape: 'spline'
+        }
+    },
+
+    {
+        x: data.experience,
+        y: data.maximum,
+        type: 'scatter',
+        mode: 'lines',
+        name: 'Maximum Salary',
+        line: {
+            dash: 'dot'
+        }
+    },
+
+    // Highlight selected experience
+    {
+        x: [experience],
+        y: [data.expected[experience]],
+        mode: 'markers',
+        name: 'Your Level',
+        marker: {
+            size: 10
+        }
+    }
+
+], {
+
+    title: "Salary Growth with Experience",
+
+    xaxis: {
+        title: "Years of Experience"
+    },
+
+    yaxis: {
+        title: "Salary ($)"
+    },
+
+    paper_bgcolor: 'white',
+    plot_bgcolor: 'white',
+    font: {
+        family: 'Roboto Condensed'
+    }
+
+});
+
+    });
+
+}
+</script>
+
+</body>
+</html>
