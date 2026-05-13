@@ -15,17 +15,9 @@ from salary_model import SalaryModel
 
 app = Flask(__name__)
 
-# ====================================
-# Load dataset + model ONLY ONCE
-# ====================================
-
 df = load_data()
 model = SalaryModel(df)
 
-
-# ====================================
-# Filtering Helper
-# ====================================
 
 def get_filtered_df(base_df):
 
@@ -69,11 +61,6 @@ def get_filtered_df(base_df):
         ]
 
     return filtered_df
-
-
-# ====================================
-# PAGES
-# ====================================
 
 @app.route('/')
 def index():
@@ -194,10 +181,6 @@ def salary_prediction():
         locations=locations
     )
 
-
-# ====================================
-# API ROUTES
-# ====================================
 
 @app.route('/api/skills')
 def skills():
@@ -321,10 +304,6 @@ def jobs_by_country():
     })
 
 
-# ====================================
-# SALARY PREDICTION
-# ====================================
-
 @app.route('/predict', methods=['POST'])
 def predict():
 
@@ -389,11 +368,6 @@ def predict():
             'error': str(e)
         }), 500
 
-
-# ====================================
-# TIMELINE PREDICTION
-# ====================================
-
 @app.route('/predict-timeline', methods=['POST'])
 def predict_timeline():
 
@@ -424,9 +398,8 @@ def predict_timeline():
             if s.strip()
         ]
 
-        # Reduced load
         experiences = list(
-            range(0, 11, 2)
+            range(0, 11)
         )
 
         expected = []
@@ -483,10 +456,6 @@ def predict_timeline():
             'error': str(e)
         }), 500
 
-
-# ====================================
-# RUN APP
-# ====================================
 
 if __name__ == '__main__':
 

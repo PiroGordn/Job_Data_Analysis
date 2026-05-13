@@ -7,34 +7,70 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap" rel="stylesheet">
+    <style>
+        nav {
+            margin-bottom: 18px;
+        }
+        nav a {
+            text-decoration: none;
+            color: #AFA2FF;
+            font-weight: 600;
+        }
+        .prediction-row {
+            display: flex;
+            gap: 14px;
+            margin-bottom: 15px;
+}
 
+.prediction-row select {
+
+    width: 320px;
+}
+
+.select2-container {
+
+    width: 320px !important;
+}
+.chart-card {
+
+    max-width: 1400px;
+
+    margin: 0 auto;
+}
+    </style>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 </head>
 <body>
-
 <div class="container">
 
     <div class="card">
         <h2>Salary Predictor</h2>
 
-        <select id="role">
+        <nav>
+        <a href="/">Home</a> |
+        <a href="/dashboard">Dashboard</a>
+    </nav>
+</div>
+        <div class="prediction-row">
+        <select id="role" class="searchable-dropdown">
             {% for r in roles %}
                 <option value="{{ r }}">{{ r }}</option>
             {% endfor %}
         </select>
 
-        <select id="location">
+        <select id="location" class="searchable-dropdown">
             {% for l in locations %}
                 <option value="{{ l }}">{{ l }}</option>
             {% endfor %}
         </select>
 
-        <select id="work_type">
+        <select id="work_type" class="searchable-dropdown">
             <option value="Full-Time">Full-Time</option>
             <option value="Part-Time">Part-Time</option>
             <option value="Contract">Contract</option>
             <option value="Intern">Intern</option>
         </select>
-
+        </div>
         <input type="number" id="experience" min="0" placeholder="Years of Experience">
 
         <input type="text" id="skills" placeholder="Skills (Python, SQL, ML)">
@@ -46,7 +82,7 @@
         <h3 id="result"></h3>
     </div>
 
-    <div class="card">
+    <div class="card chart-card">
         <h2>Salary Growth</h2>
         <div id="salaryTimeline"></div>
     </div>
@@ -158,6 +194,24 @@ function predict() {
     });
 
 }
+</script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+
+$(document).ready(function() {
+
+    $('.searchable-dropdown').select2({
+
+        placeholder: "Select an option",
+
+        allowClear: true,
+    });
+
+});
+
 </script>
 
 </body>
